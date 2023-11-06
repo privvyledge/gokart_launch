@@ -1,0 +1,81 @@
+<!--
+This package can be used for any topic that publishes PointCloud2 messages.
+Could optionally concatenate PointClouds but that might be beyond the scope of this.
+
+Can work with LIVOX and other pointclouds. Upstream nodes/components should concatenate multiple PointClouds
+to get 360 degree PointCloud data.
+Can also work with LaserScans
+
+Requirements:
+* PointCloud2XYZRTL, PointCloud2XYZI, etc.
+* IMU (optional)
+* GPS (optional)
+* Odometry (optional)
+
+Todo:
+    * Add arguments for mapping
+    * Add argument for GPS
+    * Add argument for IMU
+    * Create config and modify other parameters
+    * move to gokart_launch
+ -->
+
+<!-- Fast-LIO Test (https://github.com/Ericsii/FAST_LIO). Check "FAST_LIO/PCD/scans.pcd" for saved PointCloud -->
+<launch>
+<!-- Launch file for Livox Horizon LiDAR -->
+
+    <arg name="rviz" default="true" />
+	<arg name="config_path" default="$(find-pkg-share autoware_launch)/config/map/fast_lio_pointcloud_slamming.yaml" />
+
+	<!-- Todo: include the following lines instead
+			   ros2 launch fast_lio mapping.launch.py
+			   ros2 launch livox_ros_driver2 msg_MID360_launch.py-->
+
+<!--    <rosparam command="load" file="$(find fast_lio)/config/velodyne.yaml" />-->
+
+<!--	<param name="feature_extract_enable" type="bool" value="0"/>-->
+<!--	<param name="point_filter_num" type="int" value="3"/>-->
+<!--	<param name="max_iteration" type="int" value="3" />-->
+<!--	<param name="filter_size_surf" type="double" value="0.5" />-->
+<!--	<param name="filter_size_map" type="double" value="0.5" />-->
+<!--	<param name="cube_side_length" type="double" value="1000" />-->
+<!--	<param name="runtime_pos_log_enable" type="bool" value="0" />-->
+
+
+<!--    <node pkg="fast_lio" type="fastlio_mapping" name="laserMapping" output="screen" />-->
+
+<!--    <group if="$(arg rviz)">-->
+<!--    	<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find fast_lio)/rviz_cfg/loam_livox.rviz" />-->
+<!--    </group>-->
+	<include file="$(find-pkg-share fast_lio)/launch/mapping.launch.py">
+		<arg name="config_path" value="$(var config_path)"/>
+		<arg name="rviz_use" value="$(var rviz)"/>
+	</include>
+
+    <include file="$(find-pkg-share common_sensor_launch)/launch/tests/custom_livox_HAP_msg.launch.py">
+<!--		<arg name="sensor_frame" value="livox"/>-->
+<!--		<arg name="base_frame" value="base_link"/>-->
+<!--		<arg name="sensor_ip" value="192.168.1.100"/>-->
+<!--		<arg name="host_ip" value="$(var host_ip)"/>-->
+<!--		<arg name="publish_freq" value="50.0"/>-->
+<!--		<arg name="lvx_file_path" value="/home/livox/livox_test.lvx"/>-->
+<!--		<arg name="cmdline_input_bd_code" value="livox0000000001"/>-->
+	  <!--  <arg name="user_config_path" value=""/>-->
+    </include>
+
+	<!--
+	li_slam_ros2 test (https://github.com/rsasaki0109/li_slam_ros2).
+	Usage:
+	 	ros2 launch scanmatcher lio.launch.py
+
+	Map saving:
+		ros2 service call /map_save std_srvs/Empty
+	-->
+	<include file="$(find-pkg-share scanmatcher)/launch/lio.launch.py">
+		<arg name="config_path" value="$(var config_path)"/>
+		<arg name="rviz_use" value="$(var rviz)"/>
+	</include>
+
+
+	<!-- LIO-SAM (https://github.com/TixiaoShan/LIO-SAM/tree/ros2) LIDAR + GPS + IMU -->
+</launch>

@@ -1,0 +1,152 @@
+<!--
+https://github.com/introlab/rtabmap_ros/tree/humble-devel#usage for a ZED example
+https://github.com/introlab/rtabmap_ros/blob/humble-devel/rtabmap_launch/launch/rtabmap.launch.py
+http://wiki.ros.org/rtabmap_slam
+http://wiki.ros.org/rtabmap_ros/Tutorials/HandHeldMapping#RGB_and_depth_sensors
+http://wiki.ros.org/rtabmap_ros/Tutorials/HandHeldMapping#Mapping_mode
+
+
+for an example on using components (https://github.com/introlab/rtabmap_ros/issues/995)
+To save pointcloud map (https://answers.ros.org/question/250528/rtabmap-how-to-save-registered-3d-point-cloud/)
+
+Features:
+    * Can fuse multiple PointClouds, RGBD or Stereo images
+    * PointCloud2, RGBD Image, Stereo vision and LaserScan based mapping
+    * Can output 3D maps and 2D costmaps/gridmaps (or scan_map, i.e 3D map from any sensor including LaserScans)
+    * IMU (optional)
+    * Odometry (optional)
+    * GPS (optional)
+    * Apriltags (optional)
+    * Obstacle detection
+
+To assemble/concatenate point_clouds (http://wiki.ros.org/rtabmap_util#rtabmap_util.2Fpoint_cloud_aggregator)
+To assemble stereo/RGBD images (http://wiki.ros.org/rtabmap_sync#rtabmap_sync.2Frgbdx_sync)
+
+Todo:
+    * also save Costmap
+    * move to gokart_launch
+-->
+
+<launch>
+    <!-- Data source arguments. Could launch for ZED camera, LIVOX LIDAR or RGBD cameras-->
+    <arg name="launch_driver" default="false"/>
+    <arg name="rgbd" default="true"/>
+    <arg name="pointcloud2" default="false"/>
+    <arg name="database_path" default="/kart_data/maps/rtabmap/rtabmap.db"/>
+
+    <arg name="rviz" default="true" description="launch rviz"/>
+    <arg name="rviz_config" default="$(find-pkg-share autoware_launch)/rviz/rtabmap_slam.rviz" description="rviz config"/>
+    <arg name="rviz_respawn" default="true"/>
+
+    <!-- Zed2i Camera Arguments -->
+    <arg name="camera_name" default="zed2i"/>
+    <arg name="camera_model" default="zed2i"/>
+    <arg name="cam_pose" default="[0.0,0.0,0.0,0.0,0.0,0.0]"/>
+    <arg name="base_frame" default="base_link"/>
+    <arg name="publish_tf" default="false"/>
+    <arg name="publish_map_tf" default="false"/>
+    <arg name="publish_imu_tf" default="true"/>
+    <arg name="imu_fusion" default="true"/>
+    <arg name="gnss_fusion_enabled" default="true"/>
+    <arg name="gnss_fix_topic" default="/gnss/yahboom/nav_sat_fix"/>
+    <arg name="gnss_frame" default="gnss_link"/>
+    <arg name="mapping_enabled" default="false"/>
+    <arg name="publish_urdf" default="false"/>
+    <arg name="ros_params_override_path" default="$(find-pkg-share common_sensor_launch)/config/camera_zed2i.yaml" />
+
+    <group  if="$(arg launch_driver)">
+        <group if="$(arg rgbd)" >
+            <include file="$(find-pkg-share common_sensor_launch)/launch/tests/zed_camera.launch.xml">
+                <arg name="camera_name" value="$(var camera_name)"/>
+                <arg name="camera_model" value="$(var camera_model)"/>
+                <arg name="cam_pose" value="$(var cam_pose)"/>
+                <arg name="base_frame" value="$(var base_frame)"/>
+                <arg name="publish_tf" default="$(var publish_tf)"/>
+                <arg name="publish_map_tf" default="$(var publish_map_tf)"/>
+                <arg name="publish_imu_tf" default="$(var publish_imu_tf)"/>
+                <arg name="imu_fusion" default="$(var imu_fusion)"/>
+                <arg name="gnss_fusion_enabled" value="$(var gnss_fusion_enabled)"/>
+                <arg name="gnss_fix_topic" value="$(var gnss_fix_topic)"/>
+                <arg name="gnss_frame" value="$(var gnss_frame)"/>
+                <arg name="mapping_enabled" value="$(var mapping_enabled)"/>
+                <arg name="publish_urdf" value="$(var publish_urdf)"/>
+                <arg name="ros_params_override_path" value="$(var ros_params_override_path)"/>
+                <arg name="vehicle_mirror_param_file" value="$(var vehicle_mirror_param_file)"/>
+                <arg name="use_intra_process" value="true"/>
+                <arg name="use_multithread" value="true"/>
+                <arg name="use_pointcloud_container" value="$(var use_pointcloud_container)"/>
+                <arg name="container_name" value="$(var container_name)"/>
+            </include>
+        </group>
+    </group>
+
+    <!-- RTABMAP Arguments -->
+    <arg name="rtabmap_args" default="--delete_db_on_start"/>
+    <arg name="rgb_topic" default="zed_node/rgb/image_rect_color"/>
+    <arg name="depth_topic" default="zed_node/depth/depth_registered"/>
+    <arg name="camera_info_topic" default="zed_node/rgb/camera_info"/>
+    <arg name="frame_id" default="base_link"/>
+    <arg name="approx_sync" default="false"/>
+    <arg name="wait_imu_to_init" default="true"/>
+    <arg name="imu_topic" default="zed_node/imu/data"/>
+    <arg name="gps_topic" default="$(var gnss_fix_topic)"/>
+    <arg name="qos" default="1"/>
+    <arg name="rviz" default="true"/>
+
+    <!-- ZED RGBD Launch. -->
+    <!-- todo: if group namespace does not work use /$(var camera_name)/zed_node/* for args above -->
+    <group if="$(arg rgbd)">
+        <push-ros-namespace namespace="$(var camera_name)"/>
+        <include file="" >
+            <arg name="rtabmap_args" default="$(var rtabmap_args)"/>
+            <arg name="rgb_topic" default="$(var rgb_topic)"/>
+            <arg name="depth_topic" default="$(var depth_topic)"/>
+            <arg name="camera_info_topic" default="$(var camera_info_topic)"/>
+            <arg name="frame_id" default="$(var frame_id)"/>
+            <arg name="approx_sync" default="$(var approx_sync)"/>
+            <arg name="wait_imu_to_init" default="$(var wait_imu_to_init)"/>
+            <arg name="imu_topic" default="$(var imu_topic)"/>
+            <arg name="qos" default="$(var qos)"/>
+            <arg name="rviz" default="$(var rviz)"/>
+            <arg name="database_path" default="$(var database_path)"/>
+        </include>
+    </group>
+
+    <!-- 3D LIDAR RTABMAP Arguments. -->
+    <arg name="deskewing" default="false"/>
+    <arg name="lidar_frame_id" default="livox_frame"/>
+    <arg name="frame_id" default="base_link"/>
+    <arg name="approx_sync" default="false"/>
+    <arg name="wait_imu_to_init" default="true"/>
+    <arg name="imu_topic" default="/zed/zed_node/imu/data"/>
+    <arg name="qos" default="1"/>
+    <arg name="rviz" default="true"/>
+    <group if="$(arg pointcloud)">
+        <push-ros-namespace namespace="$(var camera_name)"/>
+        <include file="$(find-pkg-share autoware_launch)/launch/mapping/rtabmap_3d_lidar_mapping.launch.py" >
+            <arg name="rtabmap_args" default="$(var rtabmap_args)"/>
+            <arg name="rgb_topic" default="$(var rgb_topic)"/>
+            <arg name="depth_topic" default="$(var depth_topic)"/>
+            <arg name="camera_info_topic" default="$(var camera_info_topic)"/>
+            <arg name="frame_id" default="$(var frame_id)"/>
+            <arg name="approx_sync" default="$(var approx_sync)"/>
+            <arg name="wait_imu_to_init" default="$(var wait_imu_to_init)"/>
+            <arg name="imu_topic" default="$(var imu_topic)"/>
+            <arg name="qos" default="$(var qos)"/>
+            <arg name="rviz" default="$(var rviz)"/>
+            <arg name="database_path" default="$(var database_path)"/>
+        </include>
+    </group>
+
+    <group>
+        <node
+          pkg="rviz2"
+          exec="rviz2"
+          name="rtabmap_rviz2"
+          output="screen"
+          args="-d $(var rviz_config)"
+          if="$(var rviz)"
+          respawn="$(var rviz_respawn)"
+        />
+  </group>
+</launch>
